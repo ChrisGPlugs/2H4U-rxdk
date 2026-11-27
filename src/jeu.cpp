@@ -74,6 +74,9 @@ void CJeu::initJeu(bool musiqueOn, bool sonsOn, char lang[MAX_LANG][256])
 
     m_pScreenshot=SDL_CreateSurface(800, 600, COMPAT_SCREEN_FORMAT);
     m_pSpriteOver=NULL;
+    m_pQuitFond=NULL;
+    for (int i=0;i<2;i++) for (int j=0;j<2;j++) m_pQuitChoix[i][j]=NULL;
+    m_bQuitDepuisPause=false;
 
     //Chargement de la police d'écriture des chiffres :
     policeChiffres = TTF_OpenFont("D:\\data\\DS-DIGIB.TTF", 35);
@@ -170,6 +173,80 @@ void CJeu::reprendreJeu()
     m_iTimerPause=0;
 
     mySon.resumeMusic();
+}
+
+void CJeu::demanderQuitter(char lang[MAX_LANG][256], bool depuisPause)
+{
+    m_bQuitDepuisPause=depuisPause;
+    if (!depuisPause)
+    {
+        //Comme pauseJeu : on fige le jeu et la musique.
+        m_iTimerPause=SDL_GetTicks();
+        drawJeu(m_pScreenshot);
+        mySon.pauseMusic();
+    }
+
+    libererQuitter();
+    SDL_Surface* temp=IMG_Load("D:\\data\\images\\jeu\\transparent.png");
+    m_pQuitFond=SDL_DisplayFormat(temp);
+    SDL_DestroySurface(temp);
+
+    TTF_Font *policeTxt = TTF_OpenFont("D:\\data\\bgothm.ttf", 60);
+    SDL_Color couleurTitre = { 250, 130, 0 };
+    SDL_Color couleurChoix[2] = { { 120, 120, 120 }, { 250, 130, 0 } }; //non sélectionné, sélectionné
+    SDL_Rect centrage;
+
+    //Titre centré sur l'aire de jeu, comme le texte de la pause.
+    SDL_Surface* tempTxt = TTF_RenderText_Blended(policeTxt, lang[19], couleurTitre);
+    if (tempTxt!=NULL)
+    {
+        centrage.x=262-(tempTxt->w/2);
+        centrage.y=180;
+        centrage.w=tempTxt->w;
+        centrage.h=tempTxt->h;
+        SDL_BlitSurface(tempTxt,NULL,m_pQuitFond,&centrage);
+        SDL_DestroySurface(tempTxt);
+    }
+
+    for (int i=0;i<2;i++)
+        for (int j=0;j<2;j++)
+            m_pQuitChoix[i][j]=TTF_RenderText_Blended(policeTxt, lang[20+i], couleurChoix[j]);
+
+    TTF_CloseFont(policeTxt);
+}
+
+void CJeu::drawQuitter(SDL_Surface* destination, bool ouiSelectionne)
+{
+    SDL_BlitSurface(m_pScreenshot,NULL,destination,NULL);
+    if (m_pQuitFond!=NULL) SDL_BlitSurface(m_pQuitFond,NULL,destination,NULL);
+
+    //Oui à gauche, Non à droite.
+    const int centreX[2]={262-100,262+100};
+    for (int i=0;i<2;i++)
+    {
+        SDL_Surface* s=m_pQuitChoix[i][(i==0)==ouiSelectionne ? 1 : 0];
+        if (s==NULL) continue;
+        SDL_Rect pos;
+        pos.x=centreX[i]-(s->w/2);
+        pos.y=320;
+        pos.w=s->w;
+        pos.h=s->h;
+        SDL_BlitSurface(s,NULL,destination,&pos);
+    }
+}
+
+void CJeu::annulerQuitter()
+{
+    libererQuitter();
+    if (!m_bQuitDepuisPause) reprendreJeu();
+}
+
+void CJeu::libererQuitter()
+{
+    if (m_pQuitFond!=NULL) { SDL_DestroySurface(m_pQuitFond); m_pQuitFond=NULL; }
+    for (int i=0;i<2;i++)
+        for (int j=0;j<2;j++)
+            if (m_pQuitChoix[i][j]!=NULL) { SDL_DestroySurface(m_pQuitChoix[i][j]); m_pQuitChoix[i][j]=NULL; }
 }
 
 //Fonction qui permet de gérer la durée entre deux descentes puor une briques
@@ -305,6 +382,7 @@ void CJeu::deleteJeu()
     SDL_DestroySurface(myBalle[0].getSurface());
     if (m_pScreenshot!=NULL) SDL_DestroySurface(m_pScreenshot);
     if (m_pSpriteOver!=NULL) SDL_DestroySurface(m_pSpriteOver);
+    libererQuitter();
     for (int i=0;i<MAX_BALLES;i++)
     {
         myBalle[i].deleteBalle();

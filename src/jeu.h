@@ -117,6 +117,10 @@ long modifRaquette;
 
 SDL_Surface* m_pScreenshot;
 SDL_Surface* m_pSpriteOver;
+//"Quitter ?" : fond assombri + titre, et Oui/Non (sélectionné ou non).
+SDL_Surface* m_pQuitFond;
+SDL_Surface* m_pQuitChoix[2][2];
+bool m_bQuitDepuisPause;
 bool affiche;
 long m_iLastAffiche; //Timer
 int m_iDureeAffiche; //Temps
@@ -142,6 +146,12 @@ public:
     void pauseJeu(char [MAX_LANG][256]);
     void drawPause(SDL_Surface*);
     void reprendreJeu();
+    //Demande de confirmation avant de quitter la partie (bouton Back).
+    //depuisPause : le jeu est déjà en pause (pauseJeu), on n'y touche pas.
+    void demanderQuitter(char [MAX_LANG][256], bool depuisPause);
+    void drawQuitter(SDL_Surface*, bool ouiSelectionne);
+    void annulerQuitter();
+    void libererQuitter();
     void setDureeAttente();
     double getVitesseBalle();
     int getScore();

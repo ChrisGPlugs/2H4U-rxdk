@@ -17,3 +17,6 @@ Pressez
 A
 Pause
 Appuyez sur Start
+Quitter ?
+Oui
+Non
