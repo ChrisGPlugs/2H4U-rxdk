@@ -682,6 +682,7 @@ void CMyEngine::KeyDown(const int& iKeyEnum)
             case SDLK_RETURN:
                 m_iKey[K_ENTER]=true;
             break;
+            case SDLK_BACKSPACE:
             case SDLK_ESCAPE:
                 m_iKey[K_ESCAPE]=true;
             break;

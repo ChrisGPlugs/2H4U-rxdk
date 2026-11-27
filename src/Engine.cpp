@@ -225,7 +225,9 @@ void CEngine::HandlePad()
 	PadKey(5, paddleRight, SDLK_K);
 
 	PadKey(6, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_SOUTH) ,     SDLK_RETURN, SDLK_SPACE);
-	PadKey(7, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_EAST) ,     SDLK_B);
+	// B rotates (b) and is also "back" on the scores screen (Backspace there,
+	// so D-pad up, which sends b too, doesn't leave the scores).
+	PadKey(7, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_EAST) ,     SDLK_B, SDLK_BACKSPACE);
 	// While both triggers are held, Start and Back belong to the in-game reset
 	// combo, so they must not pause or exit on the way to it.
 	const bool igr = Platform_CheckIGR(p);
