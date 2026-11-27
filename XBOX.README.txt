@@ -1,0 +1,28 @@
+----------------------------------
+----         2H4U            -----
+----   Port By: Neobomb   --------
+----------------------------------
+----   www.EmuXtras.net   --------
+----------------------------------
+
+----------------------------------
+------------- 1.0 ----------------
+----------------------------------
+
+Controls:
+
+Triggers/ RAnalog: Paddle Control 
+DPAD/LAnalog Left: Move Tetromino Left
+DPAD/LAnalog Right: Move Tetromino Right
+DPAD/LAnalog Down: Speed Tetromino Decent
+DPAD UP/ B Button: Tetromino Rotate
+A Button: Tetromino Fast Drop
+R Analog Click: Open Screen Adjust
+Start Button: Pause Game
+Back Button: Exit Game
+
+------
+THANKS
+------
+
+Lantus for porting SDL, Hyper_Eye for updating it, Pierre-Yves Ricau for making the game. Everyone at EmuXtras.
