@@ -1,0 +1,92 @@
+{
+  "name": "2H4UX",
+  "defaultConfiguration": "Release",
+  "sources": [
+    "src/Engine.cpp",
+    "src/Param.cpp",
+    "src/balle.cpp",
+    "src/bonus.cpp",
+    "src/brick.cpp",
+    "src/figure.cpp",
+    "src/highscore.cpp",
+    "src/intro.cpp",
+    "src/jeu.cpp",
+    "src/launcher.cpp",
+    "src/main.cpp",
+    "src/menu.cpp",
+    "src/son.cpp",
+    "src/terrain.cpp",
+    "src/mixer.cpp",
+    "src/image_load.cpp",
+    "src/ttf_shim.cpp",
+    "src/platform_rxdk.cpp"
+  ],
+  "projectReferences": [
+    "../../RXDK-SDL3"
+  ],
+  "defines": [
+    "_XBOX",
+    "RXDK_PORT"
+  ],
+  "compileFlags": [
+    "-Wno-unused-variable",
+    "-Wno-sign-compare",
+    "-Wno-writable-strings",
+    "-Wno-deprecated-declarations",
+    "-Wno-pragma-pack"
+  ],
+  "deployPaths": [
+    "data"
+  ],
+  "createIso": true,
+  "configurations": {
+    "Debug": {
+      "configuration": "debug",
+      "libraries": [
+        "libd3d8d.lib",
+        "libdsoundd.lib",
+        "libxapid.lib",
+        "libcd.lib",
+        "libcppd.lib",
+        "libkerneld.lib",
+        "libcompatd.lib"
+      ],
+      "outputDir": "out/Debug",
+      "imageBuild": {
+        "stackSize": 262144,
+        "debug": true,
+        "noLogo": true,
+        "noLibWarn": true,
+        "testId": "0x32483455",
+        "testName": "2H4UX",
+        "testVersion": "4096",
+        "titleImage": "original/TITLEIMAGE.XBX",
+        "defaultSaveImage": "original/SAVEIMAGE.XBX"
+      }
+    },
+    "Release": {
+      "configuration": "release",
+      "libraries": [
+        "libd3d8.lib",
+        "libdsound.lib",
+        "libxapi.lib",
+        "libc.lib",
+        "libcpp.lib",
+        "libkernel.lib",
+        "libcompat.lib"
+      ],
+      "outputDir": "out/Release",
+      "imageBuild": {
+        "stackSize": 262144,
+        "debug": true,
+        "noLogo": true,
+        "noLibWarn": true,
+        "testId": "0x32483455",
+        "testName": "2H4UX",
+        "testVersion": "4096",
+        "titleImage": "original/TITLEIMAGE.XBX",
+        "defaultSaveImage": "original/SAVEIMAGE.XBX"
+      }
+    }
+  }
+}
