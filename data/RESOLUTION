@@ -1,0 +1,11 @@
+# Video mode for 2H4U
+#
+#   auto  - match the console: uses the AV cable and the HDTV modes
+#           enabled in the dashboard (720p, then 1080i, then 480p/480i)
+#   480   - prefer 640x480
+#   720   - prefer 1280x720 (720p)
+#   1080  - prefer 1920x1080 (1080i)
+#
+# A mode the console cannot output is skipped and auto is used instead.
+# The picture is always scaled to fit the screen at 4:3.
+auto
