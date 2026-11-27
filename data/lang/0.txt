@@ -20,3 +20,4 @@ Press Start
 Exit?
 Yes
 No
+Press Back again to quit

@@ -20,3 +20,4 @@ Appuyez sur Start
 Quitter ?
 Oui
 Non
+Appuyez encore sur Back pour quitter

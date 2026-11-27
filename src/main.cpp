@@ -67,6 +67,7 @@
 #define P_SCORE  5
 #define P_INTRO  6
 #define P_LAUNCHER  7
+#define BACK_DOUBLE_MS 1500
 #define P_QUITTER  8 //"Quitter ?" Oui/Non (bouton Back en jeu)
 
 //Permet la gestion de la raquette, pour lui donner une direction.
@@ -86,6 +87,13 @@ private:
     //et choix en cours (Non par défaut).
     int m_iPhaseAvantQuitter;
     bool m_bQuitOui;
+
+    //Main menu: Back quits only when pressed twice within BACK_DOUBLE_MS.
+    //m_lDernierBack is the time of the first press (0 = none); the hint
+    //"Press Back again to quit" shows meanwhile.
+    Uint64 m_lDernierBack;
+    SDL_Surface* m_pHintBack;
+    bool backArme() { return m_lDernierBack!=0 && SDL_GetTicks()-m_lDernierBack<=BACK_DOUBLE_MS; }
 
     void demanderQuitter()
     {
@@ -171,6 +179,9 @@ void CMyEngine::ParamInit(int iWidth,int iHeight)
 //AppellÃ© par Init.
 void CMyEngine::AdditionalInit()
 {
+    m_lDernierBack=0;
+    m_pHintBack=NULL;
+
     srand(time(NULL));
 
     //Le son est ouvert ici, une fois SDL et la vidéo initialisés.
@@ -407,8 +418,13 @@ void CMyEngine::Think( const int& iElapsedTime )
             }
             else if (m_iKey[K_ESCAPE]==true)
             {
-                m_Param.saveParam();
-                Quit();
+                if (backArme())
+                {
+                    m_Param.saveParam();
+                    Quit();
+                }
+                else
+                    m_lDernierBack=SDL_GetTicks();
             }
 
             for (int i=0;i<K_NBKEYS;i++) {m_iKey[i]=false;}
@@ -558,6 +574,29 @@ void CMyEngine::Render( SDL_Surface* pDestSurface )
             if(m_Param.getFullscreen()==0) b_pleinEcran=false;
             else b_pleinEcran=true;
             m_Menu.drawMenu(pDestSurface,b_musique,b_sons,b_pleinEcran);
+            if (backArme())
+            {
+                //Small dark text in the orange strip under the last button.
+                if (m_pHintBack==NULL)
+                {
+                    TTF_Font* police=TTF_OpenFont("D:\\data\\bgothm.ttf", 20);
+                    SDL_Color couleur = { 90, 30, 0 };
+                    if (police!=NULL)
+                    {
+                        m_pHintBack=TTF_RenderText_Blended(police, langTxt[22], couleur);
+                        TTF_CloseFont(police);
+                    }
+                }
+                if (m_pHintBack!=NULL)
+                {
+                    SDL_Rect pos;
+                    pos.x=400-(m_pHintBack->w/2);
+                    pos.y=566;
+                    pos.w=m_pHintBack->w;
+                    pos.h=m_pHintBack->h;
+                    SDL_BlitSurface(m_pHintBack,NULL,pDestSurface,&pos);
+                }
+            }
         break;
         case P_LAUNCHER:
             m_Launcher.drawLauncher(pDestSurface);
