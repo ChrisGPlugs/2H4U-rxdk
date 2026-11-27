@@ -133,6 +133,7 @@ void CParam::saveParam()
     {
         fprintf(fichier, "%d %d %d %d %d", m_iSon, m_iMusique, m_iFullscreen, m_iClavier, m_iLangue);
         fclose(fichier);
+        Platform_CommitSave(m_czChemin);
     }
     else
     {

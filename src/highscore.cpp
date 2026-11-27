@@ -18,6 +18,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "highscore.h"
+#include "platform.h"
 
 CHighscore::CHighscore() {}
 
@@ -110,6 +111,7 @@ void CHighscore::creerFichierHighscore()
 
         fprintf(fichier, "%ld %ld %ld %ld %ld",hs[0],hs[1],hs[2],hs[3],hs[4]);
         fclose(fichier);
+        Platform_CommitSave(m_czChemin);
 
         uncryptScores();
     }

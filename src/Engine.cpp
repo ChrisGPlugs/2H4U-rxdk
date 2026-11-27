@@ -82,6 +82,7 @@ void CEngine::Init()
 	flags |= SDL_INIT_AUDIO;
 #endif
 
+	Platform_Log("2H4U: SDL_Init\n");
 	if ( !SDL_Init( flags ) )
 	{
 		fprintf( stderr, "Impossible d'initialiser SDL: %s\n", SDL_GetError() );
@@ -89,6 +90,7 @@ void CEngine::Init()
 	}
 
 	Platform_Init();
+	Platform_Log("2H4U: params\n");
 
     //Chargement des paramètres (et choix du mode vidéo).
     ParamInit(m_iWidth,m_iHeight);
@@ -106,7 +108,9 @@ void CEngine::Init()
 	OpenFirstPad();
 #endif
 
+	Platform_Log("2H4U: game init\n");
 	AdditionalInit();
+	Platform_Log("2H4U: main loop\n");
 }
 
 //Le jeu sera en fait appellé par le menu.

@@ -251,6 +251,8 @@ bool Platform_VideoInit(int forcedHeight)
 
 void Platform_Present(SDL_Surface* frame)
 {
+    static bool first = true;
+    if (first) { Platform_Log("2H4U: first present\n"); first = false; }
     if (g_device) presentD3D(frame);
     else if (g_renderer) presentRenderer(frame);
 
@@ -278,6 +280,16 @@ const char* Platform_SavePath(const char* fileName)
     char path[260];
     SDL_snprintf(path, sizeof(path), "%s%s", g_saveDir ? g_saveDir : "U:\\", fileName);
     return SDL_strdup(path);
+}
+
+void Platform_CommitSave(const char* path)
+{
+    // fclose leaves the data in the kernel's FATX cache; a power cut (or an
+    // emulator being killed) before it is written back loses the save.
+    HANDLE h = CreateFileA(path, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) return;
+    FlushFileBuffers(h);
+    CloseHandle(h);
 }
 
 void Platform_Exit(int code)

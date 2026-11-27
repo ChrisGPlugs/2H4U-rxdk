@@ -38,6 +38,9 @@ const char* Platform_VideoModeName();
 // caller may keep.
 const char* Platform_SavePath(const char* fileName);
 
+// Make sure a save file just written and closed is on the disk.
+void        Platform_CommitSave(const char* path);
+
 // Leave the game (back to the dashboard).
 void        Platform_Exit(int code);
 

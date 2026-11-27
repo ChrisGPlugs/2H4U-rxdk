@@ -25,6 +25,17 @@ CSon::CSon()
 {
 #ifndef NO_SOUND_2H4U
     effet = new Mix_Chunk * [MAX_SONS];
+    musique = NULL;
+#endif
+}
+
+//Portage RXDK : le son n'est plus ouvert dans le constructeur (appelé
+//avant SDL_Init), mais une fois SDL et la vidéo prêts.
+void CSon::ouvrirSon()
+{
+#ifndef NO_SOUND_2H4U
+    if (musique != NULL) return;
+    Platform_Log("2H4U: audio open\n");
     if( Mix_OpenAudio( 22050, MIX_DEFAULT_FORMAT, 2, 2048 ) == -1 )
     {
         fprintf(stderr,"erreur init_sdl_mixer\n");
@@ -35,6 +46,7 @@ CSon::CSon()
         exit(0);
 #endif
     }
+    Platform_Log("2H4U: music load\n");
     musique = Mix_LoadMUS( "D:\\data\\sons\\Musique.mp3" );
     //S'il y a eu une erreur au chargement de la musique
     if( musique == NULL )

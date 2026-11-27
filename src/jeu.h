@@ -124,6 +124,7 @@ int m_iDureeAffiche; //Temps
 public:
 
     CJeu();
+    void ouvrirSon() { mySon.ouvrirSon(); }
     void initJeu(bool,bool,char [MAX_LANG][256]);
     void deleteJeu();
     void drawJeu(SDL_Surface*);

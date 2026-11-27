@@ -158,6 +158,9 @@ void CMyEngine::AdditionalInit()
 {
     srand(time(NULL));
 
+    //Le son est ouvert ici, une fois SDL et la vidéo initialisés.
+    m_Jeu.ouvrirSon();
+
     //Librairie d'Ã©criture.
     TTF_Init();
 

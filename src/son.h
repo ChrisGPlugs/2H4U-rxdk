@@ -56,6 +56,7 @@ public :
 
 CSon();//constructeur, ne fait rien
 ~CSon();//destructeur
+void ouvrirSon();//Ouvre le son et charge la musique (une fois SDL prêt).
 void initSon(bool,bool);
 void deleteSon();
 
