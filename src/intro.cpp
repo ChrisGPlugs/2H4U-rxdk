@@ -18,6 +18,7 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "intro.h"
+#include "menu.h"
 
 CIntro::CIntro() {}
 
@@ -59,7 +60,7 @@ void CIntro::initIntro(char lang[MAX_LANG][256])
         {
             SDL_DestroySurface(tempTxt);
         }
-        tempTxt = TTF_RenderText_Blended(policeTxt, lang[i+1], couleurTxt);
+        tempTxt = RenderItemText(policeTxt, MenuItemText(lang,i), couleurTxt, tempSurf[i]->w-40);
 
         centrage.x=(tempSurf[i]->w/2)-(tempTxt->w/2);
         centrage.y=((tempSurf[i]->h/2)-(tempTxt->h/2))-3;

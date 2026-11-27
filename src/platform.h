@@ -34,6 +34,11 @@ void        Platform_Present(SDL_Surface* frame);
 // Human-readable description of the mode in use, e.g. "1280x720 (picture 960x720)".
 const char* Platform_VideoModeName();
 
+// Short text for the menu's Display row: the mode set in D:\data\RESOLUTION
+// ("720p"), or "AUTO 720p" when that file says auto (or asks for a mode the
+// console can't output) with the mode the console is actually running.
+const char* Platform_DisplayLabel();
+
 // Full path for a save file (config, high scores). Returns a new string the
 // caller may keep.
 const char* Platform_SavePath(const char* fileName);
@@ -43,6 +48,12 @@ void        Platform_CommitSave(const char* path);
 
 // Leave the game (back to the dashboard).
 void        Platform_Exit(int code);
+
+// In-game reset (IGR). Call once per frame with the open gamepad (may be NULL).
+// LT + RT + Back + Start, or LT + RT + Back + Black, reboots the console to
+// the dashboard and does not return. Returns true while LT and RT are both
+// held, so the caller can hold back Start/Back (pause, exit) during the combo.
+bool        Platform_CheckIGR(SDL_Gamepad* pad);
 
 // printf-style line to the debug output (serial on xemu).
 void        Platform_Log(const char* fmt, ...) SDL_PRINTF_VARARG_FUNC(1);

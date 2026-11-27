@@ -21,6 +21,7 @@ namespace {
 
 SDL_Window*        g_window = NULL;
 char               g_modeName[96] = "none";
+char               g_displayLabel[32] = "AUTO";
 int                g_width = 0, g_height = 0;
 SDL_FRect          g_picture = { 0, 0, 0, 0 };
 
@@ -246,13 +247,31 @@ bool Platform_VideoInit(int forcedHeight)
     SDL_snprintf(g_modeName, sizeof(g_modeName), "%dx%d@%gHz (picture %dx%d, %s)",
                  g_width, g_height, current->refresh_rate, (int)g_picture.w, (int)g_picture.h,
                  d3d ? "Direct3D" : "SDL renderer");
+
+    // Progressive or interlaced comes from the Direct3D mode. Without the
+    // device, go by what the console outputs at each height: 1080 is always
+    // interlaced, 720 always progressive, and 480 is taken as interlaced.
+    bool progressive = (g_height == 720);
+    if (d3d)
+    {
+        D3DDISPLAYMODE dm;
+        g_device->GetDisplayMode(&dm);
+        progressive = (dm.Flags & D3DPRESENTFLAG_PROGRESSIVE) != 0;
+    }
+    const bool forced = (forcedHeight != 0 && forcedHeight == g_height);
+    SDL_snprintf(g_displayLabel, sizeof(g_displayLabel), "%s%d%c",
+                 forced ? "" : "AUTO ", g_height, progressive ? 'p' : 'i');
+    Platform_Log("2H4U: display label %s\n", g_displayLabel);
     return true;
+}
+
+const char* Platform_DisplayLabel()
+{
+    return g_displayLabel;
 }
 
 void Platform_Present(SDL_Surface* frame)
 {
-    static bool first = true;
-    if (first) { Platform_Log("2H4U: first present\n"); first = false; }
     if (g_device) presentD3D(frame);
     else if (g_renderer) presentRenderer(frame);
 
@@ -305,6 +324,30 @@ void Platform_Exit(int code)
     g_device = NULL;
     SDL_Quit();
     XLaunchNewImage(NULL, NULL);
+}
+
+bool Platform_CheckIGR(SDL_Gamepad* pad)
+{
+    if (pad == NULL) return false;
+
+    // Triggers are 0..32767 in SDL; count them as held past half travel.
+    const int held = 16384;
+    if (SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER)  < held ||
+        SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) < held)
+        return false;
+
+    // Start or Black, so it works on both the Duke and the Controller S.
+    // RXDK-SDL3 maps Black to the right shoulder button.
+    if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK) &&
+        (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START) ||
+         SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER)))
+    {
+        // Saves are already flushed when written (Platform_CommitSave).
+        // HalRebootRoutine (1), a full reboot, not the quick reboot (2).
+        Platform_Log("2H4U: IGR\n");
+        HalReturnToFirmware(HalRebootRoutine);
+    }
+    return true;
 }
 
 void Platform_Log(const char* fmt, ...)

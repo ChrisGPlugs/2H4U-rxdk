@@ -17,3 +17,6 @@ Press
 A
 Pause
 Press Start
+Exit?
+Yes
+No

@@ -67,6 +67,7 @@
 #define P_SCORE  5
 #define P_INTRO  6
 #define P_LAUNCHER  7
+#define P_QUITTER  8 //"Quitter ?" Oui/Non (bouton Back en jeu)
 
 //Permet la gestion de la raquette, pour lui donner une direction.
 #define R_GAUCHE -1
@@ -80,6 +81,20 @@ private:
 
     //Indique dans qu'elle phase du programme on se trouve (menu, pause, jeu...)
     int m_iPhase;
+
+    //Confirmation avant de quitter une partie : phase à reprendre si Non,
+    //et choix en cours (Non par défaut).
+    int m_iPhaseAvantQuitter;
+    bool m_bQuitOui;
+
+    void demanderQuitter()
+    {
+        m_Jeu.demanderQuitter(langTxt, m_iPhase==P_PAUSE_GAME);
+        m_iPhaseAvantQuitter=m_iPhase;
+        m_bQuitOui=false;
+        m_iPhase=P_QUITTER;
+        for (int i=0;i<K_NBKEYS;i++) {m_iKey[i]=false;}
+    }
 
     //Pour la gestion du clavier
     //Attention : Pas la mÃªme gestion pour le jeu et pour le menu.
@@ -317,10 +332,7 @@ void CMyEngine::Think( const int& iElapsedTime )
 
             if (m_iKey[K_ESCAPE]==true)
             {
-                m_Jeu.deleteJeu();
-                m_iPhase=P_MENU;
-                m_Menu.initMenu(langTxt);
-                for (int i=0;i<K_NBKEYS;i++) {m_iKey[i]=false;}
+                demanderQuitter();
             }
 
             //RÃ©mise a 0 des touches nÃ©cessaires (Celle qui sert au changement d'angle).
@@ -486,11 +498,27 @@ void CMyEngine::Think( const int& iElapsedTime )
             }
             else if (m_iKey[K_ESCAPE]==true)
             {
+                demanderQuitter();
+            }
+        break;
+        case P_QUITTER:
+            if (m_iKey[K_LEFT]==true || m_iKey[K_RIGHT]==true || m_iKey[K_UP]==true || m_iKey[K_DOWN]==true)
+            {
+                m_bQuitOui=!m_bQuitOui;
+            }
+            else if (m_iKey[K_ENTER]==true && m_bQuitOui)
+            {
                 m_Jeu.deleteJeu();
                 m_iPhase=P_MENU;
                 m_Menu.initMenu(langTxt);
-                for (int i=0;i<K_NBKEYS;i++) {m_iKey[i]=false;}
             }
+            else if (m_iKey[K_ENTER]==true || m_iKey[K_ESCAPE]==true)
+            {
+                //Non, B, Back ou Start : on revient là où on était.
+                m_Jeu.annulerQuitter();
+                m_iPhase=m_iPhaseAvantQuitter;
+            }
+            for (int i=0;i<K_NBKEYS;i++) {m_iKey[i]=false;}
         break;
     }
 
@@ -504,7 +532,7 @@ void CMyEngine::Render( SDL_Surface* pDestSurface )
     static int dernierePhase=-1;
     if (m_iPhase!=dernierePhase)
     {
-        static const char* noms[]={"menu","new_game","game","end_game","pause","scores","intro","launcher"};
+        static const char* noms[]={"menu","new_game","game","end_game","pause","scores","intro","launcher","exit_confirm"};
         dernierePhase=m_iPhase;
         Platform_ScreenShown(noms[m_iPhase]);
     }
@@ -539,6 +567,9 @@ void CMyEngine::Render( SDL_Surface* pDestSurface )
         break;
         case P_PAUSE_GAME:
             m_Jeu.drawPause(pDestSurface);
+        break;
+        case P_QUITTER:
+            m_Jeu.drawQuitter(pDestSurface, m_bQuitOui);
         break;
     }
 
@@ -682,6 +713,7 @@ void CMyEngine::KeyDown(const int& iKeyEnum)
             case SDLK_RETURN:
                 m_iKey[K_ENTER]=true;
             break;
+            case SDLK_BACKSPACE:
             case SDLK_ESCAPE:
                 m_iKey[K_ESCAPE]=true;
             break;
@@ -715,6 +747,31 @@ void CMyEngine::KeyDown(const int& iKeyEnum)
                 m_iKey[K_P]=true;
             break;
             case SDLK_ESCAPE:
+                m_iKey[K_ESCAPE]=true;
+            break;
+            }
+        break;
+        case P_QUITTER:
+            switch (iKeyEnum)
+            {
+            case SDLK_LEFT:
+                m_iKey[K_LEFT]=true;
+            break;
+            case SDLK_RIGHT:
+                m_iKey[K_RIGHT]=true;
+            break;
+            case SDLK_UP:
+                m_iKey[K_UP]=true;
+            break;
+            case SDLK_DOWN:
+                m_iKey[K_DOWN]=true;
+            break;
+            case SDLK_RETURN:
+                m_iKey[K_ENTER]=true;
+            break;
+            case SDLK_BACKSPACE:
+            case SDLK_ESCAPE:
+            case SDLK_P:
                 m_iKey[K_ESCAPE]=true;
             break;
             }

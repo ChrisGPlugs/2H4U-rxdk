@@ -24,6 +24,17 @@
 
 #include "highscore.h"
 
+// Menu row index of Display. On the Xbox it only shows the video mode
+// (Platform_DisplayLabel) and the cursor skips it.
+#define MENU_ITEM_DISPLAY 3
+
+// Text of menu row i (0 = Play). lang is the language file's lines.
+const char* MenuItemText(char lang[MAX_LANG][256], int i);
+
+// Renders text with font, or, if it is wider than maxW, with a smaller copy
+// of the menu font so it fits the button.
+SDL_Surface* RenderItemText(TTF_Font* font, const char* text, SDL_Color color, int maxW);
+
 class CItem
 {
 private:

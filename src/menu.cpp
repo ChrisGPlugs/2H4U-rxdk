@@ -20,6 +20,28 @@
 
 #include "menu.h"
 
+const char* MenuItemText(char lang[MAX_LANG][256], int i)
+{
+#ifdef _XBOX
+    if (i==MENU_ITEM_DISPLAY) return Platform_DisplayLabel();
+#endif
+    return lang[i+1];
+}
+
+SDL_Surface* RenderItemText(TTF_Font* font, const char* text, SDL_Color color, int maxW)
+{
+    SDL_Surface* s = TTF_RenderText_Blended(font, text, color);
+    for (int size=50; s!=NULL && s->w>maxW && size>=30; size-=10)
+    {
+        TTF_Font* smaller = TTF_OpenFont("D:\\data\\bgothm.ttf", size);
+        if (smaller==NULL) break;
+        SDL_DestroySurface(s);
+        s = TTF_RenderText_Blended(smaller, text, color);
+        TTF_CloseFont(smaller);
+    }
+    return s;
+}
+
 CItem::CItem()
 {
     m_pSelected=NULL;
@@ -86,7 +108,7 @@ void CMenu::initMenu(char lang[MAX_LANG][256])
         {
             SDL_DestroySurface(tempTxt);
         }
-        tempTxt = TTF_RenderText_Blended(policeTxt, lang[i+1], couleurTxt2);
+        tempTxt = RenderItemText(policeTxt, MenuItemText(lang,i), couleurTxt2, tempSurf[i]->w-40);
 
         centrage.x=(tempSurf[i]->w/2)-(tempTxt->w/2);
         centrage.y=((tempSurf[i]->h/2)-(tempTxt->h/2))-3;
@@ -127,7 +149,7 @@ void CMenu::initMenu(char lang[MAX_LANG][256])
         {
             SDL_DestroySurface(tempTxt);
         }
-        tempTxt = TTF_RenderText_Blended(policeTxt, lang[i+1], couleurTxt);
+        tempTxt = RenderItemText(policeTxt, MenuItemText(lang,i), couleurTxt, tempSurf[i]->w-40);
 
         centrage.x=(tempSurf[i]->w/2)-(tempTxt->w/2);
         centrage.y=((tempSurf[i]->h/2)-(tempTxt->h/2))-3;
@@ -272,12 +294,18 @@ void CMenu::selectNextItem()
 {
     m_iSelectedItem+=1;
     if(m_iSelectedItem==m_iNbItems){m_iSelectedItem=0;}
+#ifdef _XBOX
+    if(m_iSelectedItem==MENU_ITEM_DISPLAY){m_iSelectedItem+=1;}
+#endif
 }
 
 void CMenu::selectPreviousItem()
 {
     m_iSelectedItem-=1;
     if(m_iSelectedItem==-1){m_iSelectedItem=(m_iNbItems-1);}
+#ifdef _XBOX
+    if(m_iSelectedItem==MENU_ITEM_DISPLAY){m_iSelectedItem-=1;}
+#endif
 }
 
 void CMenu::makeScores(CHighscore m_Highscore)
