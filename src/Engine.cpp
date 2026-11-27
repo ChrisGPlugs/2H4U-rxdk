@@ -226,8 +226,11 @@ void CEngine::HandlePad()
 
 	PadKey(6, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_SOUTH) ,     SDLK_RETURN, SDLK_SPACE);
 	PadKey(7, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_EAST) ,     SDLK_B);
-	PadKey(8, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_START) , SDLK_P);
-	PadKey(9, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_BACK) ,  SDLK_ESCAPE);
+	// While both triggers are held, Start and Back belong to the in-game reset
+	// combo, so they must not pause or exit on the way to it.
+	const bool igr = Platform_CheckIGR(p);
+	PadKey(8, !igr && SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_START) , SDLK_P);
+	PadKey(9, !igr && SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_BACK) ,  SDLK_ESCAPE);
 }
 #endif
 

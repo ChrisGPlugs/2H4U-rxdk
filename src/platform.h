@@ -44,6 +44,12 @@ void        Platform_CommitSave(const char* path);
 // Leave the game (back to the dashboard).
 void        Platform_Exit(int code);
 
+// In-game reset (IGR). Call once per frame with the open gamepad (may be NULL).
+// LT + RT + Back + Start, or LT + RT + Back + Black, reboots the console to
+// the dashboard and does not return. Returns true while LT and RT are both
+// held, so the caller can hold back Start/Back (pause, exit) during the combo.
+bool        Platform_CheckIGR(SDL_Gamepad* pad);
+
 // printf-style line to the debug output (serial on xemu).
 void        Platform_Log(const char* fmt, ...) SDL_PRINTF_VARARG_FUNC(1);
 

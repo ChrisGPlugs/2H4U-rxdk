@@ -35,6 +35,7 @@ This repository builds 2H4UX with the open [RXDK](https://github.com/Team-Resurg
 | A | Fast drop / select |
 | Start | Pause |
 | Back | Back / exit |
+| Hold LT + RT + Back + Start, or LT + RT + Back + Black | In-game reset (reboot to the dashboard) |
 
 ## Building
 

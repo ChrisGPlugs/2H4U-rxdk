@@ -305,6 +305,30 @@ void Platform_Exit(int code)
     XLaunchNewImage(NULL, NULL);
 }
 
+bool Platform_CheckIGR(SDL_Gamepad* pad)
+{
+    if (pad == NULL) return false;
+
+    // Triggers are 0..32767 in SDL; count them as held past half travel.
+    const int held = 16384;
+    if (SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFT_TRIGGER)  < held ||
+        SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER) < held)
+        return false;
+
+    // Start or Black, so it works on both the Duke and the Controller S.
+    // RXDK-SDL3 maps Black to the right shoulder button.
+    if (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_BACK) &&
+        (SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_START) ||
+         SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER)))
+    {
+        // Saves are already flushed when written (Platform_CommitSave).
+        // HalRebootRoutine (1), a full reboot, not the quick reboot (2).
+        Platform_Log("2H4U: IGR\n");
+        HalReturnToFirmware(HalRebootRoutine);
+    }
+    return true;
+}
+
 void Platform_Log(const char* fmt, ...)
 {
     va_list ap;
