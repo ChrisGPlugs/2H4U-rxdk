@@ -10,9 +10,9 @@ http://www.gnu.org/copyleft/fdl.html
 
 We modified the file to make it feet our requirements.
 
-nxdk port: the game draws into an 800x600 surface which the platform layer
-scales to the console's video mode (see platform.h). Input uses the SDL2
-game controller API instead of SDLx's joystick numbering.
+RXDK port: the game draws into an 800x600 surface which the platform layer
+shows at 4:3 in the console's video mode (see platform.h). Input uses the
+SDL3 gamepad API instead of SDLx's joystick numbering.
 */
 
 #include "Engine.h"
@@ -60,7 +60,7 @@ void CEngine::SetSize(const int& iWidth, const int& iHeight)
 	m_iWidth  = GAME_W;
 	m_iHeight = GAME_H;
 	if (m_pScreen == NULL)
-		m_pScreen = SDL_CreateRGBSurfaceWithFormat(0, GAME_W, GAME_H, 32, COMPAT_SCREEN_FORMAT);
+		m_pScreen = SDL_CreateSurface(GAME_W, GAME_H, COMPAT_SCREEN_FORMAT);
 }
 
 //Même chose que précédemment, mais en plein écran.
@@ -77,15 +77,12 @@ void CEngine::flipFullScreen(bool fullscreen)
 /** Initialize SDL, the window and the additional data. **/
 void CEngine::Init()
 {
-	Uint32 flags = SDL_INIT_TIMER | SDL_INIT_EVENTS | SDL_INIT_GAMECONTROLLER;
-#ifndef NXDK
-	flags |= SDL_INIT_VIDEO;       // host test build opens a window
-#endif
+	SDL_InitFlags flags = SDL_INIT_EVENTS | SDL_INIT_VIDEO | SDL_INIT_GAMEPAD;
 #ifndef NO_SOUND_2H4U
 	flags |= SDL_INIT_AUDIO;
 #endif
 
-	if ( SDL_Init( flags ) < 0 )
+	if ( !SDL_Init( flags ) )
 	{
 		fprintf( stderr, "Impossible d'initialiser SDL: %s\n", SDL_GetError() );
 		Platform_Exit( 1 );
@@ -104,11 +101,9 @@ void CEngine::Init()
 	}
 
 #ifdef _XBOX
-	// The pad is opened when SDL reports it (SDL_CONTROLLERDEVICEADDED),
+	// The pad is opened when SDL reports it (SDL_EVENT_GAMEPAD_ADDED),
 	// but grab one now if it is already there.
-	for (int i = 0; i < SDL_NumJoysticks() && m_pPad == NULL; i++)
-		if (SDL_IsGameController(i))
-			m_pPad = SDL_GameControllerOpen(i);
+	OpenFirstPad();
 #endif
 
 	AdditionalInit();
@@ -156,14 +151,23 @@ void CEngine::Quit()
 
 void CEngine::End()
 {
-#ifndef NXDK
-     SDL_Quit();
-#endif
-     //Sur Xbox, retour direct au tableau de bord (voir Platform_Exit).
+     //Ferme le son et SDL, puis retour au tableau de bord (voir Platform_Exit).
      Platform_Exit(0);
 }
 
 #ifdef _XBOX
+/** Opens the first gamepad SDL knows about, if any. **/
+void CEngine::OpenFirstPad()
+{
+	int count = 0;
+	SDL_JoystickID* pads = SDL_GetGamepads(&count);
+	if (pads == NULL)
+		return;
+	for (int i = 0; i < count && m_pPad == NULL; i++)
+		m_pPad = SDL_OpenGamepad(pads[i]);
+	SDL_free(pads);
+}
+
 /** Turns a pad input into game key presses, only when its state changes.
 	iSlot identifies the input, iKey1/iKey2 are the SDLK_ codes it sends.
 **/
@@ -192,34 +196,34 @@ void CEngine::HandlePad()
 	if (m_pPad == NULL)
 		return;
 
-	SDL_GameController* p = m_pPad;
-	const int lx = SDL_GameControllerGetAxis(p, SDL_CONTROLLER_AXIS_LEFTX);
-	const int ly = SDL_GameControllerGetAxis(p, SDL_CONTROLLER_AXIS_LEFTY);
-	const int rx = SDL_GameControllerGetAxis(p, SDL_CONTROLLER_AXIS_RIGHTX);
-	const int lt = SDL_GameControllerGetAxis(p, SDL_CONTROLLER_AXIS_TRIGGERLEFT);
-	const int rt = SDL_GameControllerGetAxis(p, SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+	SDL_Gamepad* p = m_pPad;
+	const int lx = SDL_GetGamepadAxis(p, SDL_GAMEPAD_AXIS_LEFTX);
+	const int ly = SDL_GetGamepadAxis(p, SDL_GAMEPAD_AXIS_LEFTY);
+	const int rx = SDL_GetGamepadAxis(p, SDL_GAMEPAD_AXIS_RIGHTX);
+	const int lt = SDL_GetGamepadAxis(p, SDL_GAMEPAD_AXIS_LEFT_TRIGGER);
+	const int rt = SDL_GetGamepadAxis(p, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER);
 
-	const bool up    = SDL_GameControllerGetButton(p, SDL_CONTROLLER_BUTTON_DPAD_UP)    || ly < -JOY_DEADZONE * 3;
-	const bool down  = SDL_GameControllerGetButton(p, SDL_CONTROLLER_BUTTON_DPAD_DOWN)  || ly >  JOY_DEADZONE * 3;
-	const bool left  = SDL_GameControllerGetButton(p, SDL_CONTROLLER_BUTTON_DPAD_LEFT)  || lx < -JOY_DEADZONE * 3;
-	const bool right = SDL_GameControllerGetButton(p, SDL_CONTROLLER_BUTTON_DPAD_RIGHT) || lx >  JOY_DEADZONE * 3;
+	const bool up    = SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_DPAD_UP)    || ly < -JOY_DEADZONE * 3;
+	const bool down  = SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_DPAD_DOWN)  || ly >  JOY_DEADZONE * 3;
+	const bool left  = SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_DPAD_LEFT)  || lx < -JOY_DEADZONE * 3;
+	const bool right = SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_DPAD_RIGHT) || lx >  JOY_DEADZONE * 3;
 
 	// Paddle: triggers or right stick (j = left, k = right).
 	const bool paddleLeft  = lt > JOY_TRIGGER_THRESHOLD || rx < -JOY_DEADZONE;
 	const bool paddleRight = rt > JOY_TRIGGER_THRESHOLD || rx >  JOY_DEADZONE;
 
 	// Tetromino / menu navigation. Up also rotates (b), like the original port.
-	PadKey(0, up,    SDLK_UP, SDLK_b);
+	PadKey(0, up,    SDLK_UP, SDLK_B);
 	PadKey(1, down,  SDLK_DOWN);
 	PadKey(2, left,  SDLK_LEFT);
 	PadKey(3, right, SDLK_RIGHT);
-	PadKey(4, paddleLeft,  SDLK_j);
-	PadKey(5, paddleRight, SDLK_k);
+	PadKey(4, paddleLeft,  SDLK_J);
+	PadKey(5, paddleRight, SDLK_K);
 
-	PadKey(6, SDL_GameControllerGetButton(p, SDL_CONTROLLER_BUTTON_A) != 0,     SDLK_RETURN, SDLK_SPACE);
-	PadKey(7, SDL_GameControllerGetButton(p, SDL_CONTROLLER_BUTTON_B) != 0,     SDLK_b);
-	PadKey(8, SDL_GameControllerGetButton(p, SDL_CONTROLLER_BUTTON_START) != 0, SDLK_p);
-	PadKey(9, SDL_GameControllerGetButton(p, SDL_CONTROLLER_BUTTON_BACK) != 0,  SDLK_ESCAPE);
+	PadKey(6, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_SOUTH) ,     SDLK_RETURN, SDLK_SPACE);
+	PadKey(7, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_EAST) ,     SDLK_B);
+	PadKey(8, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_START) , SDLK_P);
+	PadKey(9, SDL_GetGamepadButton(p, SDL_GAMEPAD_BUTTON_BACK) ,  SDLK_ESCAPE);
 }
 #endif
 
@@ -235,32 +239,29 @@ void CEngine::HandleInput()
 		switch ( event.type )
 		{
 #ifdef _XBOX
-		case SDL_CONTROLLERDEVICEADDED:
+		case SDL_EVENT_GAMEPAD_ADDED:
 			if (m_pPad == NULL)
-				m_pPad = SDL_GameControllerOpen(event.cdevice.which);
+				m_pPad = SDL_OpenGamepad(event.gdevice.which);
 			break;
-		case SDL_CONTROLLERDEVICEREMOVED:
-			if (m_pPad != NULL &&
-			    SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(m_pPad)) == event.cdevice.which)
+		case SDL_EVENT_GAMEPAD_REMOVED:
+			if (m_pPad != NULL && SDL_GetGamepadID(m_pPad) == event.gdevice.which)
 			{
-				SDL_GameControllerClose(m_pPad);
+				SDL_CloseGamepad(m_pPad);
 				m_pPad = NULL;
-				for (int i = 0; i < SDL_NumJoysticks() && m_pPad == NULL; i++)
-					if (SDL_IsGameController(i))
-						m_pPad = SDL_GameControllerOpen(i);
+				OpenFirstPad();
 			}
 			break;
 #endif
-		case SDL_KEYDOWN:
+		case SDL_EVENT_KEY_DOWN:
 			if (!event.key.repeat)
-				KeyDown( event.key.keysym.sym );
+				KeyDown( (int)event.key.key );
 			break;
 
-		case SDL_KEYUP:
-			KeyUp( event.key.keysym.sym );
+		case SDL_EVENT_KEY_UP:
+			KeyUp( (int)event.key.key );
 			break;
 
-		case SDL_QUIT:
+		case SDL_EVENT_QUIT:
 			m_bQuit = true;
 			break;
 		} // switch

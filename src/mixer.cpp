@@ -1,27 +1,27 @@
 #include "mixer.h"
+#include "platform.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define DR_MP3_IMPLEMENTATION
 #define DR_MP3_NO_STDIO
-#define DR_MP3_NO_SIMD      // its SIMD detection misfires for the Xbox target
+#define DR_MP3_NO_SIMD      // Pentium III: no SSE2
 #include "../third_party/dr_mp3.h"
 
-#ifndef NXDK
-extern const char* Host_Path(const char* xboxPath);
-#define MIXER_PATH(p) Host_Path(p)
-#else
-#define MIXER_PATH(p) (p)
-#endif
+// The game mixes everything itself in this format; SDL converts it to the
+// device's if they differ (on the Xbox DirectSound takes it as is).
+#define MIX_FREQ         48000
+#define MIX_CHANNELS_OUT 2
+// Most bytes mixed per step of the audio callback.
+#define MIX_STEP_BYTES   4096
 
 struct Mix_Music
 {
-    Uint8*          fileData;
-    size_t          fileSize;
-    drmp3           mp3;
-    SDL_AudioStream* stream;   // MP3 rate/channels -> device format
+    Uint8*           fileData;
+    size_t           fileSize;
+    drmp3            mp3;
+    SDL_AudioStream* stream;   // MP3 rate/channels -> mix format
 };
 
 namespace {
@@ -33,71 +33,60 @@ struct Channel
     int        loops;    // -1 = forever
 };
 
-SDL_AudioDeviceID g_device = 0;
-SDL_AudioSpec     g_spec;
+const SDL_AudioSpec g_spec = { SDL_AUDIO_S16, MIX_CHANNELS_OUT, MIX_FREQ };
+
+// The device stream. SDL runs its callback with the stream locked, so
+// locking it is also what guards the channel and music state below.
+SDL_AudioStream*  g_out = NULL;
 Channel           g_channels[MIX_CHANNELS];
 
 Mix_Music*        g_music = NULL;
 int               g_musicLoops = 0;
 bool              g_musicPaused = false;
 
-Sint32*           g_accum = NULL;
-Sint16*           g_musicBuf = NULL;
-int               g_accumSamples = 0;
+const int         MIX_STEP_SAMPLES = MIX_STEP_BYTES / (int)sizeof(Sint16);
+Sint32            g_accum[MIX_STEP_SAMPLES];
+Sint16            g_musicBuf[MIX_STEP_SAMPLES];
+Sint16            g_mixBuf[MIX_STEP_SAMPLES];
 
 const int MP3_DECODE_FRAMES = 1152;
 Sint16            g_decodeBuf[MP3_DECODE_FRAMES * 2];
 
-bool readFile(const char* path, Uint8** data, size_t* size)
-{
-    SDL_RWops* rw = SDL_RWFromFile(path, "rb");
-    if (!rw) return false;
-    Sint64 len = SDL_RWsize(rw);
-    if (len <= 0) { SDL_RWclose(rw); return false; }
-    *data = (Uint8*)malloc((size_t)len);
-    *size = (size_t)SDL_RWread(rw, *data, 1, (size_t)len);
-    SDL_RWclose(rw);
-    return *size == (size_t)len;
-}
+void lock()   { if (g_out) SDL_LockAudioStream(g_out); }
+void unlock() { if (g_out) SDL_UnlockAudioStream(g_out); }
 
-// Pull `samples` S16 samples (interleaved) of music into out. Called with the device locked.
+// Pull `samples` S16 samples (interleaved) of music into out. Called locked.
 void readMusic(Sint16* out, int samples)
 {
     Mix_Music* m = g_music;
     int bytesWanted = samples * (int)sizeof(Sint16);
 
-    while (SDL_AudioStreamAvailable(m->stream) < bytesWanted)
+    while (SDL_GetAudioStreamAvailable(m->stream) < bytesWanted)
     {
         drmp3_uint64 got = drmp3_read_pcm_frames_s16(&m->mp3, MP3_DECODE_FRAMES, g_decodeBuf);
         if (got == 0)
         {
-            if (g_musicLoops == 0) { SDL_AudioStreamFlush(m->stream); break; }
+            if (g_musicLoops == 0) { SDL_FlushAudioStream(m->stream); break; }
             if (g_musicLoops > 0) g_musicLoops--;
             drmp3_seek_to_pcm_frame(&m->mp3, 0);
             continue;
         }
-        SDL_AudioStreamPut(m->stream, g_decodeBuf, (int)(got * m->mp3.channels * sizeof(Sint16)));
+        SDL_PutAudioStreamData(m->stream, g_decodeBuf, (int)(got * m->mp3.channels * sizeof(Sint16)));
     }
 
-    int got = SDL_AudioStreamGet(m->stream, out, bytesWanted);
+    int got = SDL_GetAudioStreamData(m->stream, out, bytesWanted);
     if (got < 0) got = 0;
     if (got < bytesWanted)
     {
         memset((Uint8*)out + got, 0, bytesWanted - got);
-        if (g_musicLoops == 0 && SDL_AudioStreamAvailable(m->stream) == 0)
+        if (g_musicLoops == 0 && SDL_GetAudioStreamAvailable(m->stream) == 0)
             g_music = NULL;                 // finished
     }
 }
 
-void SDLCALL audioCallback(void*, Uint8* stream, int len)
+// Mix `samples` (<= MIX_STEP_SAMPLES) interleaved samples into out.
+void mix(Sint16* out, int samples)
 {
-    const int samples = len / (int)sizeof(Sint16);
-    if (samples > g_accumSamples)
-    {
-        g_accum = (Sint32*)realloc(g_accum, samples * sizeof(Sint32));
-        g_musicBuf = (Sint16*)realloc(g_musicBuf, samples * sizeof(Sint16));
-        g_accumSamples = samples;
-    }
     memset(g_accum, 0, samples * sizeof(Sint32));
 
     if (g_music && !g_musicPaused)
@@ -128,7 +117,6 @@ void SDLCALL audioCallback(void*, Uint8* stream, int len)
         }
     }
 
-    Sint16* out = (Sint16*)stream;
     for (int i = 0; i < samples; i++)
     {
         Sint32 v = g_accum[i];
@@ -136,70 +124,78 @@ void SDLCALL audioCallback(void*, Uint8* stream, int len)
     }
 }
 
+// SDL asks for `additional` more bytes of mixed audio.
+void SDLCALL audioCallback(void*, SDL_AudioStream* stream, int additional, int)
+{
+    while (additional > 0)
+    {
+        int bytes = additional < MIX_STEP_BYTES ? additional : MIX_STEP_BYTES;
+        bytes &= ~3;                       // whole stereo frames
+        if (bytes <= 0) bytes = 4;
+        const int samples = bytes / (int)sizeof(Sint16);
+        mix(g_mixBuf, samples);
+        SDL_PutAudioStreamData(stream, g_mixBuf, bytes);
+        additional -= bytes;
+    }
+}
+
 } // namespace
 
-int Mix_OpenAudio(int frequency, Uint16, int, int chunksize)
+int Mix_OpenAudio(int, Uint16, int, int)
 {
-    if (g_device) return 0;
-    if (!SDL_WasInit(SDL_INIT_AUDIO) && SDL_InitSubSystem(SDL_INIT_AUDIO) < 0)
+    if (g_out) return 0;
+    if (!SDL_WasInit(SDL_INIT_AUDIO) && !SDL_InitSubSystem(SDL_INIT_AUDIO))
+    {
+        Platform_Log("2H4U: SDL audio init failed: %s\n", SDL_GetError());
         return -1;
+    }
 
-    SDL_AudioSpec want;
-    SDL_zero(want);
-    want.freq = frequency > 0 ? frequency : 48000;
-#ifdef NXDK
-    want.freq = 48000;                       // the Xbox driver always runs at 48 kHz
-#endif
-    want.format = AUDIO_S16SYS;
-    want.channels = 2;
-    want.samples = (Uint16)(chunksize > 0 ? chunksize : 1024);
-    want.callback = audioCallback;
-
-    // Always mix in S16 stereo; let SDL convert if the device needs something else.
-    g_device = SDL_OpenAudioDevice(NULL, 0, &want, &g_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
-    if (!g_device) return -1;
     memset(g_channels, 0, sizeof(g_channels));
-    SDL_PauseAudioDevice(g_device, 0);
+    g_out = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &g_spec, audioCallback, NULL);
+    if (!g_out)
+    {
+        Platform_Log("2H4U: can't open audio: %s\n", SDL_GetError());
+        return -1;
+    }
+    SDL_ResumeAudioStreamDevice(g_out);
     return 0;
 }
 
 void Mix_CloseAudio(void)
 {
-    if (!g_device) return;
-    SDL_CloseAudioDevice(g_device);
-    g_device = 0;
-    free(g_accum);    g_accum = NULL;
-    free(g_musicBuf); g_musicBuf = NULL;
-    g_accumSamples = 0;
+    if (!g_out) return;
+    SDL_DestroyAudioStream(g_out);     // also closes the device
+    g_out = NULL;
+    g_music = NULL;
 }
 
 Mix_Chunk* Mix_LoadWAV(const char* file)
 {
-    if (!g_device) return NULL;
+    if (!g_out) return NULL;
 
     SDL_AudioSpec spec;
     Uint8* buf = NULL;
     Uint32 len = 0;
-    if (!SDL_LoadWAV(MIXER_PATH(file), &spec, &buf, &len))
-        return NULL;
-
-    SDL_AudioCVT cvt;
-    if (SDL_BuildAudioCVT(&cvt, spec.format, spec.channels, spec.freq,
-                          AUDIO_S16SYS, 2, g_spec.freq) < 0)
+    if (!SDL_LoadWAV(file, &spec, &buf, &len))
     {
-        SDL_FreeWAV(buf);
+        Platform_Log("2H4U: can't load %s: %s\n", file, SDL_GetError());
         return NULL;
     }
-    cvt.len = (int)len;
-    cvt.buf = (Uint8*)malloc(len * cvt.len_mult);
-    memcpy(cvt.buf, buf, len);
-    SDL_FreeWAV(buf);
-    if (cvt.needed) SDL_ConvertAudio(&cvt);
 
-    Mix_Chunk* chunk = (Mix_Chunk*)malloc(sizeof(Mix_Chunk));
+    Uint8* converted = NULL;
+    int convertedLen = 0;
+    const bool ok = SDL_ConvertAudioSamples(&spec, buf, (int)len, &g_spec, &converted, &convertedLen);
+    SDL_free(buf);
+    if (!ok)
+    {
+        Platform_Log("2H4U: can't convert %s: %s\n", file, SDL_GetError());
+        return NULL;
+    }
+
+    Mix_Chunk* chunk = (Mix_Chunk*)SDL_malloc(sizeof(Mix_Chunk));
     chunk->allocated = 1;
-    chunk->abuf = cvt.buf;
-    chunk->alen = (Uint32)(cvt.needed ? cvt.len_cvt : cvt.len) & ~3u;
+    chunk->abuf = converted;
+    chunk->alen = (Uint32)convertedLen & ~3u;
     chunk->volume = MIX_MAX_VOLUME;
     return chunk;
 }
@@ -207,18 +203,18 @@ Mix_Chunk* Mix_LoadWAV(const char* file)
 void Mix_FreeChunk(Mix_Chunk* chunk)
 {
     if (!chunk) return;
-    if (g_device) SDL_LockAudioDevice(g_device);
+    lock();
     for (int c = 0; c < MIX_CHANNELS; c++)
         if (g_channels[c].chunk == chunk) g_channels[c].chunk = NULL;
-    if (g_device) SDL_UnlockAudioDevice(g_device);
-    free(chunk->abuf);
-    free(chunk);
+    unlock();
+    SDL_free(chunk->abuf);
+    SDL_free(chunk);
 }
 
 int Mix_PlayChannel(int channel, Mix_Chunk* chunk, int loops)
 {
-    if (!g_device || !chunk || chunk->alen == 0) return -1;
-    SDL_LockAudioDevice(g_device);
+    if (!g_out || !chunk || chunk->alen == 0) return -1;
+    lock();
     if (channel < 0 || channel >= MIX_CHANNELS)
     {
         channel = -1;
@@ -231,28 +227,30 @@ int Mix_PlayChannel(int channel, Mix_Chunk* chunk, int loops)
         g_channels[channel].pos = 0;
         g_channels[channel].loops = loops;
     }
-    SDL_UnlockAudioDevice(g_device);
+    unlock();
     return channel;
 }
 
 Mix_Music* Mix_LoadMUS(const char* file)
 {
-    if (!g_device) return NULL;
-    Mix_Music* m = (Mix_Music*)calloc(1, sizeof(Mix_Music));
-    if (!readFile(MIXER_PATH(file), &m->fileData, &m->fileSize) ||
-        !drmp3_init_memory(&m->mp3, m->fileData, m->fileSize, NULL))
+    if (!g_out) return NULL;
+    Mix_Music* m = (Mix_Music*)SDL_calloc(1, sizeof(Mix_Music));
+    if (!m) return NULL;
+    m->fileData = (Uint8*)SDL_LoadFile(file, &m->fileSize);
+    if (!m->fileData || !drmp3_init_memory(&m->mp3, m->fileData, m->fileSize, NULL))
     {
-        free(m->fileData);
-        free(m);
+        Platform_Log("2H4U: can't load music %s\n", file);
+        SDL_free(m->fileData);
+        SDL_free(m);
         return NULL;
     }
-    m->stream = SDL_NewAudioStream(AUDIO_S16SYS, (Uint8)m->mp3.channels, (int)m->mp3.sampleRate,
-                                   AUDIO_S16SYS, 2, g_spec.freq);
+    const SDL_AudioSpec src = { SDL_AUDIO_S16, (int)m->mp3.channels, (int)m->mp3.sampleRate };
+    m->stream = SDL_CreateAudioStream(&src, &g_spec);
     if (!m->stream)
     {
         drmp3_uninit(&m->mp3);
-        free(m->fileData);
-        free(m);
+        SDL_free(m->fileData);
+        SDL_free(m);
         return NULL;
     }
     return m;
@@ -261,25 +259,25 @@ Mix_Music* Mix_LoadMUS(const char* file)
 void Mix_FreeMusic(Mix_Music* music)
 {
     if (!music) return;
-    if (g_device) SDL_LockAudioDevice(g_device);
+    lock();
     if (g_music == music) g_music = NULL;
-    if (g_device) SDL_UnlockAudioDevice(g_device);
-    SDL_FreeAudioStream(music->stream);
+    unlock();
+    SDL_DestroyAudioStream(music->stream);
     drmp3_uninit(&music->mp3);
-    free(music->fileData);
-    free(music);
+    SDL_free(music->fileData);
+    SDL_free(music);
 }
 
 int Mix_PlayMusic(Mix_Music* music, int loops)
 {
-    if (!g_device || !music) return -1;
-    SDL_LockAudioDevice(g_device);
+    if (!g_out || !music) return -1;
+    lock();
     drmp3_seek_to_pcm_frame(&music->mp3, 0);
-    SDL_AudioStreamClear(music->stream);
+    SDL_ClearAudioStream(music->stream);
     g_music = music;
     g_musicLoops = loops;   // -1 = forever, like SDL_mixer
     g_musicPaused = false;
-    SDL_UnlockAudioDevice(g_device);
+    unlock();
     return 0;
 }
 
@@ -288,11 +286,11 @@ void Mix_ResumeMusic(void) { g_musicPaused = false; }
 
 void Mix_HaltMusic(void)
 {
-    if (!g_device) return;
-    SDL_LockAudioDevice(g_device);
+    if (!g_out) return;
+    lock();
     g_music = NULL;
     g_musicPaused = false;
-    SDL_UnlockAudioDevice(g_device);
+    unlock();
 }
 
 int Mix_PlayingMusic(void)

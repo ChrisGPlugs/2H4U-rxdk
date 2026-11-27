@@ -64,7 +64,7 @@ void CTerrain::initTerrain(char lang[MAX_LANG][256])
     {
         if (tempTxt!=NULL)
         {
-            SDL_FreeSurface(tempTxt);
+            SDL_DestroySurface(tempTxt);
         }
         tempTxt = TTF_RenderText_Blended(policeTxt, lang[i+8], couleurTxt);
 
@@ -153,17 +153,17 @@ void CTerrain::rndFillTerrain(int nbLignes)
 void CTerrain::deleteTerrain()
 {
 
-    SDL_FreeSurface(myImgTerrain);
+    SDL_DestroySurface(myImgTerrain);
 
     for (int i=0;i<7;i++)
     {
-        SDL_FreeSurface(m_pImgCT[i]);
+        SDL_DestroySurface(m_pImgCT[i]);
     }
-    SDL_FreeSurface(m_pBriqueCassee);
+    SDL_DestroySurface(m_pBriqueCassee);
 
     for (int i=0;i<7;i++)
     {
-        SDL_FreeSurface(m_pImgFigure[i]);
+        SDL_DestroySurface(m_pImgFigure[i]);
     }
 
 }

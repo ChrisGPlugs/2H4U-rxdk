@@ -72,7 +72,7 @@ void CJeu::initJeu(bool musiqueOn, bool sonsOn, char lang[MAX_LANG][256])
     m_pSuivant=NULL;
     m_pLignes=NULL;
 
-    m_pScreenshot=SDL_CreateRGBSurface(SDL_HWSURFACE, 800, 600, 32, 0, 0, 0, 0);
+    m_pScreenshot=SDL_CreateSurface(800, 600, COMPAT_SCREEN_FORMAT);
     m_pSpriteOver=NULL;
 
     //Chargement de la police d'écriture des chiffres :
@@ -97,11 +97,11 @@ void CJeu::pauseJeu(char lang[MAX_LANG][256])
 
     m_iTimerPause=SDL_GetTicks();
     drawJeu(m_pScreenshot);
-    if (m_pSpriteOver!=NULL) SDL_FreeSurface(m_pSpriteOver);
+    if (m_pSpriteOver!=NULL) SDL_DestroySurface(m_pSpriteOver);
 
     SDL_Surface* temp=IMG_Load("D:\\data\\images\\jeu\\transparent.png");
     m_pSpriteOver=SDL_DisplayFormat(temp);
-    SDL_FreeSurface(temp);
+    SDL_DestroySurface(temp);
 
     TTF_Font *policeTxt = TTF_OpenFont("D:\\data\\bgothm.ttf", 60);
     SDL_Color couleurTxt = { 250, 130, 0 };
@@ -114,7 +114,7 @@ void CJeu::pauseJeu(char lang[MAX_LANG][256])
     {
         if (tempTxt!=NULL)
         {
-            SDL_FreeSurface(tempTxt);
+            SDL_DestroySurface(tempTxt);
         }
         tempTxt = TTF_RenderText_Blended(policeTxt, lang[i+17], couleurTxt);
 
@@ -240,11 +240,11 @@ void CJeu::saveLastDisplay(char lang[MAX_LANG][256])
 {
     mySon.playEffet(S_GAME_OVER);
     drawJeu(m_pScreenshot);
-    if (m_pSpriteOver!=NULL) SDL_FreeSurface(m_pSpriteOver);
+    if (m_pSpriteOver!=NULL) SDL_DestroySurface(m_pSpriteOver);
 
     SDL_Surface* temp=IMG_Load("D:\\data\\images\\jeu\\transparent.png");
     m_pSpriteOver=SDL_DisplayFormat(temp);
-    SDL_FreeSurface(temp);
+    SDL_DestroySurface(temp);
 
     TTF_Font *policeTxt = TTF_OpenFont("D:\\data\\bgothm.ttf", 60);
     SDL_Color couleurTxt = { 250, 130, 0 };
@@ -258,7 +258,7 @@ void CJeu::saveLastDisplay(char lang[MAX_LANG][256])
     {
         if (tempTxt!=NULL)
         {
-            SDL_FreeSurface(tempTxt);
+            SDL_DestroySurface(tempTxt);
         }
         tempTxt = TTF_RenderText_Blended(policeTxt, lang[i+14], couleurTxt);
 
@@ -302,9 +302,9 @@ void CJeu::drawGameOver(SDL_Surface* destination)
 
 void CJeu::deleteJeu()
 {
-    SDL_FreeSurface(myBalle[0].getSurface());
-    if (m_pScreenshot!=NULL) SDL_FreeSurface(m_pScreenshot);
-    if (m_pSpriteOver!=NULL) SDL_FreeSurface(m_pSpriteOver);
+    SDL_DestroySurface(myBalle[0].getSurface());
+    if (m_pScreenshot!=NULL) SDL_DestroySurface(m_pScreenshot);
+    if (m_pSpriteOver!=NULL) SDL_DestroySurface(m_pSpriteOver);
     for (int i=0;i<MAX_BALLES;i++)
     {
         myBalle[i].deleteBalle();
@@ -313,10 +313,10 @@ void CJeu::deleteJeu()
 
     TTF_CloseFont(policeChiffres);
 
-    SDL_FreeSurface(m_pScore);
-    SDL_FreeSurface(m_pNiveau);
-    SDL_FreeSurface(m_pSuivant); //Ici, ne compte que pour le premier niveau.
-    SDL_FreeSurface(m_pLignes);
+    SDL_DestroySurface(m_pScore);
+    SDL_DestroySurface(m_pNiveau);
+    SDL_DestroySurface(m_pSuivant); //Ici, ne compte que pour le premier niveau.
+    SDL_DestroySurface(m_pLignes);
 
     mySon.deleteSon();
 
@@ -616,7 +616,7 @@ void CJeu::makeChiffre(SDL_Surface* &destination,int chiffre)
 
     if (destination!=NULL)
     {
-        SDL_FreeSurface(destination);
+        SDL_DestroySurface(destination);
     }
 
     destination = TTF_RenderText_Blended(policeChiffres, buffer, couleurChiffres);
@@ -759,9 +759,9 @@ void CRaquette::changerLargeur(int newLargeur, SDL_Rect *terrainRect)
 
 void CRaquette::deleteRaquette()
 {
-    SDL_FreeSurface(m_pRaqGauche);
-    SDL_FreeSurface(m_pRaqCentre);
-    SDL_FreeSurface(m_pRaqDroite);
+    SDL_DestroySurface(m_pRaqGauche);
+    SDL_DestroySurface(m_pRaqCentre);
+    SDL_DestroySurface(m_pRaqDroite);
 }
 
 

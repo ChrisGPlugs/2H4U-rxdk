@@ -22,11 +22,12 @@
 //Uncomment the following line to disables sounds in 2H4U.
 //#define NO_SOUND_2H4U
 
-// nxdk port: SDL2 + SDL2_image + SDL_ttf, and a small SDL_mixer
-// replacement (mixer.h). compat.h maps the SDL 1.2 calls the game uses.
-#include <SDL.h>
-#include <SDL_image.h>
-#include <SDL_ttf.h>
+// RXDK port: SDL3, with small stand-ins for the parts of SDL_image
+// (image_load.h), SDL_ttf (ttf_shim.h) and SDL_mixer (mixer.h) the game
+// uses. compat.h maps the SDL 1.2 calls the game makes.
+#include <SDL3/SDL.h>
+#include "image_load.h"
+#include "ttf_shim.h"
 #ifndef NO_SOUND_2H4U
 	#include "mixer.h"
 #endif

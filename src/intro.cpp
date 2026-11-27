@@ -50,14 +50,14 @@ void CIntro::initIntro(char lang[MAX_LANG][256])
     tempSurf[4]=SDL_DisplayFormatAlpha(gd);
     tempSurf[5]=SDL_DisplayFormatAlpha(gd);
 
-    SDL_FreeSurface(gd);
-    SDL_FreeSurface(pt);
+    SDL_DestroySurface(gd);
+    SDL_DestroySurface(pt);
 
     for (int i=0;i<6;i++)
     {
         if (tempTxt!=NULL)
         {
-            SDL_FreeSurface(tempTxt);
+            SDL_DestroySurface(tempTxt);
         }
         tempTxt = TTF_RenderText_Blended(policeTxt, lang[i+1], couleurTxt);
 
@@ -70,7 +70,7 @@ void CIntro::initIntro(char lang[MAX_LANG][256])
     }
     if (tempTxt!=NULL)
     {
-        SDL_FreeSurface(tempTxt);
+        SDL_DestroySurface(tempTxt);
     }
     centrage.x=150;
     centrage.y=75;
@@ -109,7 +109,7 @@ void CIntro::initIntro(char lang[MAX_LANG][256])
     SDL_BlitSurface(tempSurf[5],NULL,m_pMenu,&centrage);
 
     for (int i=0;i<6;i++)
-        SDL_FreeSurface(tempSurf[i]);
+        SDL_DestroySurface(tempSurf[i]);
 
 
     m_pTeam=IMG_Load("D:\\data\\images\\menu\\team.jpg");
@@ -121,7 +121,7 @@ void CIntro::initIntro(char lang[MAX_LANG][256])
     centrage.w=tempTxt->w;
     centrage.h=tempTxt->h;
     SDL_BlitSurface(tempTxt,NULL,m_pTeam,&centrage);
-    SDL_FreeSurface(tempTxt);
+    SDL_DestroySurface(tempTxt);
 
     TTF_CloseFont(policeTxt);
 
@@ -135,10 +135,10 @@ void CIntro::initIntro(char lang[MAX_LANG][256])
 
 void CIntro::deleteIntro()
 {
-    SDL_FreeSurface(m_pMenu);
-    SDL_FreeSurface(m_pTeam);
-    SDL_FreeSurface(m_pJeu);
-    SDL_FreeSurface(m_pNoir);
+    SDL_DestroySurface(m_pMenu);
+    SDL_DestroySurface(m_pTeam);
+    SDL_DestroySurface(m_pJeu);
+    SDL_DestroySurface(m_pNoir);
 }
 
 void CIntro::drawIntro(SDL_Surface* destination)
@@ -164,7 +164,7 @@ void CIntro::drawIntro(SDL_Surface* destination)
     //Fondu au noir : rien à faire si totalement transparent, simple
     //remplissage si totalement opaque (évite un mélange plein écran).
     if (alpha >= 255)
-        SDL_FillRect(destination, NULL, SDL_MapRGB(destination->format, 0, 0, 0));
+        SDL_FillSurfaceRect(destination, NULL, SDL_MapSurfaceRGB(destination, 0, 0, 0));
     else if (alpha > 0)
         SDL_BlitSurface(m_pNoir, NULL, destination, NULL);
 }

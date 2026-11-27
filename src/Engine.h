@@ -62,12 +62,13 @@ protected:
 public:
 
 #ifdef _XBOX
-	/** Xbox controller (SDL2 game controller API). **/
-	SDL_GameController *m_pPad;
+	/** Xbox controller (SDL3 gamepad API). **/
+	SDL_Gamepad *m_pPad;
 	/** Last frame's state of each virtual key the pad drives, for edge detection. **/
 	bool m_bPadKey[16];
 	void PadKey(int iSlot, bool bDown, int iKey1, int iKey2 = 0);
 	void HandlePad();
+	void OpenFirstPad();
 #endif
 
 	CEngine();

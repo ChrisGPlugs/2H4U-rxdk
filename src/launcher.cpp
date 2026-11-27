@@ -38,9 +38,9 @@ void CLauncher::initLauncher()
 void CLauncher::deleteLauncher()
 {
     for (int i=0;i<2;i++)
-        SDL_FreeSurface(m_pFond[i]);
+        SDL_DestroySurface(m_pFond[i]);
     for (int i=0;i<4;i++)
-        SDL_FreeSurface(m_pItem[i]);
+        SDL_DestroySurface(m_pItem[i]);
 }
 
 void CLauncher::drawLauncher(SDL_Surface* destination)

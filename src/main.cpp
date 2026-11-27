@@ -39,6 +39,7 @@
 #include "launcher.h"
 //Les includes de SDL et quelques constantes.
 #include "sdl_includes.h"
+#include <SDL3/SDL_main.h>
 
 
 //Pour la gestion du clavier, vue qu'on a besoin que de quelques touches.
@@ -204,14 +205,14 @@ void CMyEngine::QuitScreen()
     if (screen == NULL) return;
 
     //On assombrit la dernière image affichée.
-    SDL_Surface* voile = SDL_CreateRGBSurfaceWithFormat(0, screen->w, screen->h, 32, COMPAT_SCREEN_FORMAT);
+    SDL_Surface* voile = SDL_CreateSurface(screen->w, screen->h, COMPAT_SCREEN_FORMAT);
     if (voile != NULL)
     {
-        SDL_FillRect(voile, NULL, SDL_MapRGB(voile->format, 0, 0, 0));
+        SDL_FillSurfaceRect(voile, NULL, SDL_MapSurfaceRGB(voile, 0, 0, 0));
         SDL_SetSurfaceBlendMode(voile, SDL_BLENDMODE_BLEND);
         SDL_SetSurfaceAlphaMod(voile, 170);
         SDL_BlitSurface(voile, NULL, screen, NULL);
-        SDL_FreeSurface(voile);
+        SDL_DestroySurface(voile);
     }
 
     //Puis le message, centré (data/lang/1.txt = français).
@@ -229,7 +230,7 @@ void CMyEngine::QuitScreen()
             bandeau.y = (screen->h - texte->h) / 2 - 20;
             bandeau.w = screen->w;
             bandeau.h = texte->h + 40;
-            SDL_FillRect(screen, &bandeau, SDL_MapRGB(screen->format, 0, 0, 0));
+            SDL_FillSurfaceRect(screen, &bandeau, SDL_MapSurfaceRGB(screen, 0, 0, 0));
 
             SDL_Rect pos;
             pos.x = (screen->w - texte->w) / 2;
@@ -237,7 +238,7 @@ void CMyEngine::QuitScreen()
             pos.w = texte->w;
             pos.h = texte->h;
             SDL_BlitSurface(texte, NULL, screen, &pos);
-            SDL_FreeSurface(texte);
+            SDL_DestroySurface(texte);
         }
         TTF_CloseFont(police);
     }
@@ -496,6 +497,15 @@ void CMyEngine::Think( const int& iElapsedTime )
 //Affichage à partir des données disponibles.
 void CMyEngine::Render( SDL_Surface* pDestSurface )
 {
+    //Annonce chaque nouvel �cran dans la sortie de d�bogage (voir platform.h).
+    static int dernierePhase=-1;
+    if (m_iPhase!=dernierePhase)
+    {
+        static const char* noms[]={"menu","new_game","game","end_game","pause","scores","intro","launcher"};
+        dernierePhase=m_iPhase;
+        Platform_ScreenShown(noms[m_iPhase]);
+    }
+
     //tempTest2=SDL_GetTicks();
     switch(m_iPhase)
     {
@@ -552,7 +562,7 @@ void CMyEngine::KeyDown(const int& iKeyEnum)
             case SDLK_RIGHT:
                 m_iKey[K_D]=true;
             break;
-            case SDLK_b:
+            case SDLK_B:
                 if (m_Param.getClavier()==1) m_iKey[K_Z]=true;
             break;
             case SDLK_DOWN:
@@ -562,13 +572,13 @@ void CMyEngine::KeyDown(const int& iKeyEnum)
             case SDLK_SPACE:
                 m_iKey[K_SPACE]=true;
             break;
-            case SDLK_j:
+            case SDLK_J:
                 m_iKey[K_LEFT]=true;
             break;
-            case SDLK_k:
+            case SDLK_K:
                 m_iKey[K_RIGHT]=true;
             break;
-            case SDLK_p:
+            case SDLK_P:
                 m_iKey[K_P]=true;
             break;
             case SDLK_ESCAPE:
@@ -581,28 +591,28 @@ void CMyEngine::KeyDown(const int& iKeyEnum)
             case SDLK_RIGHT:
                 m_iKey[K_RIGHT]=true;
             break;
-            case SDLK_q:
+            case SDLK_Q:
                 if (m_Param.getClavier()==0) m_iKey[K_Q]=true;
             break;
-            case SDLK_a:
+            case SDLK_A:
                 if (m_Param.getClavier()==1) m_iKey[K_Q]=true;
             break;
-            case SDLK_d:
+            case SDLK_D:
                 m_iKey[K_D]=true;
             break;
-            case SDLK_z:
+            case SDLK_Z:
                 if (m_Param.getClavier()==0) m_iKey[K_Z]=true;
             break;
-            case SDLK_w:
+            case SDLK_W:
                 if (m_Param.getClavier()==1) m_iKey[K_Z]=true;
             break;
-            case SDLK_s:
+            case SDLK_S:
                 m_iKey[K_S]=true;
             break;
             case SDLK_SPACE:
                 m_iKey[K_SPACE]=true;
             break;
-            case SDLK_p:
+            case SDLK_P:
                 m_iKey[K_P]=true;
             break;
             case SDLK_ESCAPE:
@@ -698,7 +708,7 @@ void CMyEngine::KeyDown(const int& iKeyEnum)
         case P_PAUSE_GAME:
             switch (iKeyEnum)
             {
-            case SDLK_p:
+            case SDLK_P:
                 m_iKey[K_P]=true;
             break;
             case SDLK_ESCAPE:
@@ -733,10 +743,10 @@ void CMyEngine::KeyUp (const int& iKeyEnum)
             case SDLK_SPACE:
                 m_iKey[K_SPACE]=false;
             break;
-            case SDLK_j:
+            case SDLK_J:
                 m_iKey[K_LEFT]=false;
             break;
-            case SDLK_k:
+            case SDLK_K:
                 m_iKey[K_RIGHT]=false;
             break;
 #else
@@ -746,16 +756,16 @@ void CMyEngine::KeyUp (const int& iKeyEnum)
             case SDLK_RIGHT:
                 m_iKey[K_RIGHT]=false;
             break;
-            case SDLK_s:
+            case SDLK_S:
                 m_iKey[K_S]=false;
             break;
-            case SDLK_q:
+            case SDLK_Q:
                 if (m_Param.getClavier()==0) m_iKey[K_Q]=false;
             break;
-            case SDLK_a:
+            case SDLK_A:
                 if (m_Param.getClavier()==1) m_iKey[K_Q]=false;
             break;
-            case SDLK_d:
+            case SDLK_D:
                 m_iKey[K_D]=false;
             break;
 #endif

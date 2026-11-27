@@ -47,7 +47,7 @@ void CBonus::deleteBonus()
 {
     for (int i=0;i<NB_BONUS;i++)
     {
-        SDL_FreeSurface(m_pBonus[i]);
+        SDL_DestroySurface(m_pBonus[i]);
     }
 }
 

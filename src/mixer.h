@@ -1,17 +1,18 @@
 /*
     Minimal stand-in for the parts of SDL_mixer that 2H4U uses.
 
-    nxdk ships SDL2 but not SDL_mixer, and the game only needs: WAV sound
+    There is no SDL3_mixer for RXDK, and the game only needs: WAV sound
     effects played on free channels, and one looping MP3 music track.
-    Everything is mixed to the output device format (48 kHz stereo S16 on Xbox).
+    Everything is mixed in 48 kHz stereo S16 and fed to an SDL3 audio
+    stream (DirectSound on the Xbox).
     MP3 decoding uses dr_mp3 (public domain / MIT-0, third_party/dr_mp3.h).
 */
 #ifndef MIXER_H
 #define MIXER_H
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
-#define MIX_DEFAULT_FORMAT AUDIO_S16LSB
+#define MIX_DEFAULT_FORMAT SDL_AUDIO_S16LE
 #define MIX_MAX_VOLUME     128
 #define MIX_CHANNELS       8
 

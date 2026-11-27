@@ -2,7 +2,7 @@
 #ifndef __XPAD_H__
 #define __XPAD_H__
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #define JOY_DEADZONE 4500
 // Analog triggers (0..32767) count as pressed above this.

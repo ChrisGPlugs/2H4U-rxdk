@@ -34,7 +34,7 @@ void CItem::initItem(SDL_Surface* selected,int x,int y)
 
 void CItem::deleteItem()
 {
-    SDL_FreeSurface(m_pSelected);
+    SDL_DestroySurface(m_pSelected);
     m_pSelected=NULL;
 }
 
@@ -77,14 +77,14 @@ void CMenu::initMenu(char lang[MAX_LANG][256])
     tempSurf[4]=SDL_DisplayFormatAlpha(gd);
     tempSurf[5]=SDL_DisplayFormatAlpha(gd);
 
-    SDL_FreeSurface(gd);
-    SDL_FreeSurface(pt);
+    SDL_DestroySurface(gd);
+    SDL_DestroySurface(pt);
 
     for (int i=0;i<6;i++)
     {
         if (tempTxt!=NULL)
         {
-            SDL_FreeSurface(tempTxt);
+            SDL_DestroySurface(tempTxt);
         }
         tempTxt = TTF_RenderText_Blended(policeTxt, lang[i+1], couleurTxt2);
 
@@ -118,14 +118,14 @@ void CMenu::initMenu(char lang[MAX_LANG][256])
     tempSurf[4]=SDL_DisplayFormatAlpha(gd);
     tempSurf[5]=SDL_DisplayFormatAlpha(gd);
 
-    SDL_FreeSurface(gd);
-    SDL_FreeSurface(pt);
+    SDL_DestroySurface(gd);
+    SDL_DestroySurface(pt);
 
     for (int i=0;i<6;i++)
     {
         if (tempTxt!=NULL)
         {
-            SDL_FreeSurface(tempTxt);
+            SDL_DestroySurface(tempTxt);
         }
         tempTxt = TTF_RenderText_Blended(policeTxt, lang[i+1], couleurTxt);
 
@@ -138,7 +138,7 @@ void CMenu::initMenu(char lang[MAX_LANG][256])
     }
     if (tempTxt!=NULL)
     {
-        SDL_FreeSurface(tempTxt);
+        SDL_DestroySurface(tempTxt);
     }
     centrage.x=150;
     centrage.y=75;
@@ -177,7 +177,7 @@ void CMenu::initMenu(char lang[MAX_LANG][256])
     SDL_BlitSurface(tempSurf[5],NULL,m_pFond,&centrage);
 
     for (int i=0;i<6;i++)
-        SDL_FreeSurface(tempSurf[i]);
+        SDL_DestroySurface(tempSurf[i]);
 
     m_pScores=IMG_Load("D:\\data\\images\\menu\\scores.jpg");
 
@@ -187,7 +187,7 @@ void CMenu::initMenu(char lang[MAX_LANG][256])
     centrage.w=tempTxt->w;
     centrage.h=tempTxt->h;
     SDL_BlitSurface(tempTxt,NULL,m_pScores,&centrage);
-    SDL_FreeSurface(tempTxt);
+    SDL_DestroySurface(tempTxt);
 
     TTF_CloseFont(policeTxt);
 
@@ -216,15 +216,15 @@ void CMenu::deleteMenu()
 
     delete[] m_pItems;
 
-    SDL_FreeSurface(m_pFond);
-    SDL_FreeSurface(m_pScores);
-    SDL_FreeSurface(m_pChangeMusique);
-    SDL_FreeSurface(m_pChangeSons);
-    SDL_FreeSurface(m_pChangeAffichage);
+    SDL_DestroySurface(m_pFond);
+    SDL_DestroySurface(m_pScores);
+    SDL_DestroySurface(m_pChangeMusique);
+    SDL_DestroySurface(m_pChangeSons);
+    SDL_DestroySurface(m_pChangeAffichage);
 
     for (int i=0;i<5;i++)
     {
-        if (scoreTxt[i]!=NULL) SDL_FreeSurface(scoreTxt[i]);
+        if (scoreTxt[i]!=NULL) SDL_DestroySurface(scoreTxt[i]);
     }
 }
 
@@ -291,7 +291,7 @@ void CMenu::makeScores(CHighscore m_Highscore)
     {
         sprintf(buffer,"%d",m_Highscore.getScore(i));
 
-        if (scoreTxt[i]!=NULL) SDL_FreeSurface(scoreTxt[i]);
+        if (scoreTxt[i]!=NULL) SDL_DestroySurface(scoreTxt[i]);
 
         scoreTxt[i] = TTF_RenderText_Blended(policeChiffres, buffer, couleurChiffres);
     }
