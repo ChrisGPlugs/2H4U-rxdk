@@ -21,6 +21,7 @@ namespace {
 
 SDL_Window*        g_window = NULL;
 char               g_modeName[96] = "none";
+char               g_displayLabel[32] = "AUTO";
 int                g_width = 0, g_height = 0;
 SDL_FRect          g_picture = { 0, 0, 0, 0 };
 
@@ -246,7 +247,27 @@ bool Platform_VideoInit(int forcedHeight)
     SDL_snprintf(g_modeName, sizeof(g_modeName), "%dx%d@%gHz (picture %dx%d, %s)",
                  g_width, g_height, current->refresh_rate, (int)g_picture.w, (int)g_picture.h,
                  d3d ? "Direct3D" : "SDL renderer");
+
+    // Progressive or interlaced comes from the Direct3D mode. Without the
+    // device, go by what the console outputs at each height: 1080 is always
+    // interlaced, 720 always progressive, and 480 is taken as interlaced.
+    bool progressive = (g_height == 720);
+    if (d3d)
+    {
+        D3DDISPLAYMODE dm;
+        g_device->GetDisplayMode(&dm);
+        progressive = (dm.Flags & D3DPRESENTFLAG_PROGRESSIVE) != 0;
+    }
+    const bool forced = (forcedHeight != 0 && forcedHeight == g_height);
+    SDL_snprintf(g_displayLabel, sizeof(g_displayLabel), "%s%d%c",
+                 forced ? "" : "AUTO ", g_height, progressive ? 'p' : 'i');
+    Platform_Log("2H4U: display label %s\n", g_displayLabel);
     return true;
+}
+
+const char* Platform_DisplayLabel()
+{
+    return g_displayLabel;
 }
 
 void Platform_Present(SDL_Surface* frame)

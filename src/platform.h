@@ -34,6 +34,11 @@ void        Platform_Present(SDL_Surface* frame);
 // Human-readable description of the mode in use, e.g. "1280x720 (picture 960x720)".
 const char* Platform_VideoModeName();
 
+// Short text for the menu's Display row: the mode set in D:\data\RESOLUTION
+// ("720p"), or "AUTO 720p" when that file says auto (or asks for a mode the
+// console can't output) with the mode the console is actually running.
+const char* Platform_DisplayLabel();
+
 // Full path for a save file (config, high scores). Returns a new string the
 // caller may keep.
 const char* Platform_SavePath(const char* fileName);
