@@ -78,7 +78,7 @@
       "outputDir": "out/Release",
       "imageBuild": {
         "stackSize": 262144,
-        "debug": true,
+        "debug": false,
         "noLogo": true,
         "noLibWarn": true,
         "testId": "0x32483455",

@@ -251,8 +251,6 @@ bool Platform_VideoInit(int forcedHeight)
 
 void Platform_Present(SDL_Surface* frame)
 {
-    static bool first = true;
-    if (first) { Platform_Log("2H4U: first present\n"); first = false; }
     if (g_device) presentD3D(frame);
     else if (g_renderer) presentRenderer(frame);
 
