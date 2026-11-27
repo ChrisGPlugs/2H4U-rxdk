@@ -38,4 +38,4 @@
 #include "compat.h"
 
 //Nombre de lignes dans les fichiers de langue
-#define MAX_LANG 22
+#define MAX_LANG 23

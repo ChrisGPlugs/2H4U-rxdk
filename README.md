@@ -34,7 +34,7 @@ This repository builds 2H4UX with the open [RXDK](https://github.com/Team-Resurg
 | D-pad up / B | Rotate tetromino |
 | A | Fast drop / select |
 | Start | Pause |
-| Back | Back / exit (asks "Exit?" during a game; B also leaves the Scores screen) |
+| Back | Back / exit (asks "Exit?" during a game; press twice within 1.5 s to quit from the main menu; B also leaves the Scores screen) |
 | Hold LT + RT + Back + Start, or LT + RT + Back + Black | In-game reset (reboot to the dashboard) |
 
 ## Building
